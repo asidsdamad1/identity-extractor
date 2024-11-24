@@ -18,3 +18,4 @@ torch==2.1.2
 torchvision==0.16.2
 tqdm==4.66.1
 qreader==3.12
+pyzbar==0.1.9
