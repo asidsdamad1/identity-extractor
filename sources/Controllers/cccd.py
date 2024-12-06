@@ -11,7 +11,6 @@ from vietocr.tool.predictor import Predictor
 from sources.Controllers import utils
 from qreader import QReader
 from cv2 import QRCodeDetector, imread
-from pyzbar.pyzbar import decode
 
 GLB_FACE_MODEL = yolov5.load(cfg.FACE_MODEL_PATH)
 GLB_CORNER_MODEL = yolov5.load(cfg.CORNER_MODEL_PATH)
@@ -31,7 +30,7 @@ glb_config["device"] = cfg.DEVICE
 glb_config["predictor"]["beamsearch"] = False
 glb_detector = Predictor(glb_config)
 glb_qreader = QReader()
-qreader_reader, cv2_reader, pyzbar_reader = QReader(), cv2.QRCodeDetector(), decode
+# qreader_reader, cv2_reader, pyzbar_reader = QReader(), cv2.QRCodeDetector(), decode
 
 async def extract_info_qr_code(file_path: str = None):
     data_final = None
@@ -39,35 +38,18 @@ async def extract_info_qr_code(file_path: str = None):
         imageQrCode = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
         decoded_text = glb_qreader.detect_and_decode(image=imageQrCode)
 
-        img = imread(file_path)
-
-        data =  decode(Image.open(file_path))
-        # b = str(data, "utf8", errors="ignore")
-        # Decode the evaluated string using unicode_escape codec
-        decoded_str = bytes('V\xef\xbe\x85\xef\xbd\xa9 Kh\xe8\x98\xaf\xef\xbd\xafc Quy\xe8\x98\xaf\xef\xbd\xbft', 'utf-8').decode('unicode_escape').encode('latin1').decode('utf-8')
-        print("data:", decoded_str)
-
-        # Try to decode the QR code with the three readers
-        qreader_out = qreader_reader.detect_and_decode(image=imageQrCode)
-        cv2_out,a,b = cv2_reader.detectAndDecode(imageQrCode)
-        pyzbar_out = pyzbar_reader(image=imageQrCode)
-        # Read the content of the pyzbar output (double decoding will save you from a lot of wrongly decoded characters)
-        try: 
-            pyzbar_out = tuple(out.data.decode('utf-8') for out in pyzbar_out for out in pyzbar_out)
-        except (UnicodeDecodeError, UnicodeEncodeError):
-            # When double decoding fails, just return the decoded string assuming it could have weird characters
-            pyzbar_out = tuple(out.data.decode('utf-8') for out in pyzbar_out)
-
-        # Print the results
-        # print(f"Image: {file_path} -> QReader: {qreader_out}. OpenCV: {cv2_out}. pyzbar: {pyzbar_out}.")
-
         if decoded_text and decoded_text[0] is not None:
             FIELDS_DETECTED = list(decoded_text)[0].split('|')
             if len(FIELDS_DETECTED) == 7:
+                name = FIELDS_DETECTED[2]
+                try: 
+                    name = name.encode('shift-jis').decode('utf-8')
+                except Exception as ex:
+                    name = FIELDS_DETECTED[2]
                 data_final = {
                     'noCccd': FIELDS_DETECTED[0],
                     'noCmnd': FIELDS_DETECTED[1],
-                    'name': FIELDS_DETECTED[2].decode(encoding='UTF-8',errors='strict'),
+                    'name': name,
                     'dob': FIELDS_DETECTED[3][:2] + '/' + FIELDS_DETECTED[3][2:][:2] + '/' + FIELDS_DETECTED[3][4:],
                     'sex': FIELDS_DETECTED[4],
                     'address': FIELDS_DETECTED[5],
@@ -78,7 +60,6 @@ async def extract_info_qr_code(file_path: str = None):
         print("Loi me no roi cccd chip qr code: ", ex)
 
     return data_final
-
 
 async def extract_info_boxes(file_path: str = None):
     data_final = None
