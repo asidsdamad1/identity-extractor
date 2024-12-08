@@ -9,8 +9,6 @@ from qreader import QReader
 from vietocr.tool.config import Cfg as CfgVietOCR
 from vietocr.tool.predictor import Predictor
 from sources.Controllers import utils
-from qreader import QReader
-from cv2 import QRCodeDetector, imread
 
 GLB_FACE_MODEL = yolov5.load(cfg.FACE_MODEL_PATH)
 GLB_CORNER_MODEL = yolov5.load(cfg.CORNER_MODEL_PATH)
